@@ -10,12 +10,13 @@ import { loadSettings, saveSettings, loadSavedGame, saveGameState } from "./stor
 // ★武鬥系待機=格鬥架式(微蹲雙手前彎,07-14 人物鐵則)。
 
 // ---------- 可調量值 ----------
+// boost=衝刺加速(玩家限定,AI 沒有——按住 Shift/衝刺鈕逃跑用)
 export const DIFFICULTY_PRESETS = {
-  kids: { maxFwd: 3.8, boost: 1.2, turnRate: 2.5, aiSkill: 0.25, aiCd: 1.9, aiDmg: 0.45, aiSpd: 0.75, assist: 0.5 },
-  child: { maxFwd: 4.2, boost: 1.5, turnRate: 2.45, aiSkill: 0.4, aiCd: 1.5, aiDmg: 0.65, aiSpd: 0.85, assist: 0.3 },
-  easy: { maxFwd: 4.8, boost: 1.8, turnRate: 2.4, aiSkill: 0.55, aiCd: 1.25, aiDmg: 0.8, aiSpd: 0.92, assist: 0.15 },
-  normal: { maxFwd: 5.4, boost: 2.2, turnRate: 2.35, aiSkill: 0.68, aiCd: 1.05, aiDmg: 0.95, aiSpd: 1.0, assist: 0 },
-  hard: { maxFwd: 6.0, boost: 2.6, turnRate: 2.3, aiSkill: 0.82, aiCd: 0.85, aiDmg: 1.1, aiSpd: 1.06, assist: 0 },
+  kids: { maxFwd: 3.8, boost: 2.8, turnRate: 2.5, aiSkill: 0.25, aiCd: 1.9, aiDmg: 0.45, aiSpd: 0.75, assist: 0.5 },
+  child: { maxFwd: 4.2, boost: 3.2, turnRate: 2.45, aiSkill: 0.4, aiCd: 1.5, aiDmg: 0.65, aiSpd: 0.85, assist: 0.3 },
+  easy: { maxFwd: 4.8, boost: 3.8, turnRate: 2.4, aiSkill: 0.55, aiCd: 1.25, aiDmg: 0.8, aiSpd: 0.92, assist: 0.15 },
+  normal: { maxFwd: 5.4, boost: 4.4, turnRate: 2.35, aiSkill: 0.68, aiCd: 1.05, aiDmg: 0.95, aiSpd: 1.0, assist: 0 },
+  hard: { maxFwd: 6.0, boost: 4.8, turnRate: 2.3, aiSkill: 0.82, aiCd: 0.85, aiDmg: 1.1, aiSpd: 1.06, assist: 0 },
 };
 
 export const DIFFICULTY_LABELS = {
@@ -56,16 +57,27 @@ export function getModeConfig(modeId) {
 // ---------- 八般武器(與騎士比武同一張表,徒步版 reach 縮短) ----------
 export const WEAPON_ORDER = ["lance", "spear", "greatblade", "sword", "saber", "rapier", "bow", "greenballs"];
 
+// swing=近戰揮擊型態(動作要大):chop=180°舉過頭直劈、spin=360°迴旋橫掃、lunge=大幅回拉前刺;
+// 傷害在揮到對方身上那一刻(CONTACT_AT)才結算,判定仍在按下當下。
 export const WEAPONS = {
-  lance: { label: "長槍", short: "長槍", reach: 2.6, dmg: 16, cd: 1.6, arc: 0.55, chargeBonus: 0.9, hint: "衝刺加成最大,慢而重" },
-  spear: { label: "長矛", short: "長矛", reach: 2.4, dmg: 12, cd: 1.1, arc: 0.65, chargeBonus: 0.5, hint: "長距直刺,攻守兼備" },
-  greatblade: { label: "青龍大刀", short: "大刀", reach: 2.0, dmg: 15, cd: 1.5, arc: 1.6, hint: "橫掃大弧,重擊" },
-  sword: { label: "騎士劍", short: "劍", reach: 1.6, dmg: 10, cd: 0.8, arc: 1.25, hint: "均衡好上手" },
-  saber: { label: "彎刀", short: "彎刀", reach: 1.5, dmg: 8, cd: 0.55, arc: 1.35, hint: "出手飛快的連擊" },
-  rapier: { label: "西洋劍", short: "西洋劍", reach: 1.8, dmg: 6, cd: 0.4, arc: 0.7, hint: "最快的點刺" },
+  lance: { label: "長槍", short: "長槍", reach: 2.6, dmg: 16, cd: 1.6, arc: 0.55, chargeBonus: 0.9, swing: "lunge", hint: "衝刺加成最大,慢而重" },
+  spear: { label: "長矛", short: "長矛", reach: 2.4, dmg: 12, cd: 1.1, arc: 0.65, chargeBonus: 0.5, swing: "lunge", hint: "長距直刺,攻守兼備" },
+  greatblade: { label: "青龍大刀", short: "大刀", reach: 2.0, dmg: 15, cd: 1.5, arc: 1.6, swing: "spin", hint: "360° 迴旋橫掃,重擊" },
+  sword: { label: "騎士劍", short: "劍", reach: 1.6, dmg: 10, cd: 0.8, arc: 1.25, swing: "chop", hint: "180° 直劈,均衡好上手" },
+  saber: { label: "彎刀", short: "彎刀", reach: 1.5, dmg: 8, cd: 0.55, arc: 1.35, swing: "chop", hint: "180° 快劈連擊" },
+  rapier: { label: "西洋劍", short: "西洋劍", reach: 1.8, dmg: 6, cd: 0.4, arc: 0.7, swing: "lunge", hint: "最快的點刺" },
   bow: { label: "弓箭", short: "弓箭", ranged: true, dmg: 9, cd: 1.5, projSpeed: 26, maxRange: 30, hint: "遠距狙擊(鈍頭箭)" },
   greenballs: { label: "雙綠鋼球", short: "鋼球", ranged: true, dmg: 6, cd: 2.4, projSpeed: 16, maxRange: 20, stun: 1.1, volley: 2, hint: "兩顆連投,命中暈眩" },
 };
+
+// 揮擊「接觸瞬間」(秒)——傷害/閃光/慢動作在這一刻才發生,看得見打到身上
+const CONTACT_AT = { chop: 0.24, spin: 0.3, lunge: 0.22 };
+
+// 蓄力大招:長按出手鍵蓄力,放開發出「刀光/劍光/武器波動」飛行斬擊波。
+// CHARGE_MIN=成招門檻(短按<此值=普通攻擊);CHARGE_FULL=滿蓄;被打會中斷蓄力。
+const CHARGE_MIN = 0.6;
+const CHARGE_FULL = 1.5;
+const WAVE_COLORS = { chop: 0xfff3b0, spin: 0xff9a3d, lunge: 0x6fd8ff, bow: 0xffe14d, greenballs: 0x5aff6e };
 
 // ---------- 比武場常數 ----------
 const ARENA_HALF = 15; // 徒步場地(±m)
@@ -459,6 +471,8 @@ export class WarriorGame {
     this.roundNo = 0; // 「回合」=雙方出手總次數(大戰三百回合!)
     this.lastHit = null;
     this.projectiles = [];
+    this._pendingStrikes = []; // 近戰接觸瞬間結算佇列
+    this._shotQueue = [];
     this.hitCamT = 9;
     this.endT = -1;
 
@@ -622,10 +636,18 @@ export class WarriorGame {
     const person = makePerson({ shirt, pants, scale: 1 });
     const gear = heroUp(person, team, knot);
     this.scene.add(person.group);
+    // 蓄力光圈(腳下金圈,蓄力時亮起放大)
+    const chargeRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.55, 0.82, 28),
+      new THREE.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0, side: THREE.DoubleSide }),
+    );
+    chargeRing.rotation.x = -Math.PI / 2;
+    chargeRing.position.y = 0.05;
+    person.group.add(chargeRing);
     return {
-      person, gear,
+      person, gear, chargeRing,
       pos: new THREE.Vector3(), heading: 0, speed: 0,
-      hp: 100, weaponId: "sword", cd: 0,
+      hp: 100, weaponId: "sword", cd: 0, chargeT: -1,
       strikeT: 9, hitT: 9, stunT: 9, koT: -1, walkT: 0,
     };
   }
@@ -642,6 +664,7 @@ export class WarriorGame {
       f.hitT = 9;
       f.stunT = 9;
       f.koT = -1;
+      f.chargeT = -1;
       f.person.group.rotation.z = 0;
       f.person.group.position.y = 0;
       f.person.rig.rotation.set(0, 0, 0);
@@ -653,12 +676,15 @@ export class WarriorGame {
     for (const p of this.projectiles) this.scene.remove(p.mesh);
     this.projectiles = [];
     this._shotQueue = [];
+    this._pendingStrikes = [];
     this.setFighterWeapon(this.my, this.weaponId);
     this.setFighterWeapon(this.foe, WEAPON_ORDER[Math.floor(Math.random() * 6)]); // AI 開場拿一把近戰
     if (this.foe.brain) {
       this.foe.brain.retreatT = 0;
       this.foe.brain.switchT = 5 + Math.random() * 4;
       this.foe.brain.orbitDir = Math.random() < 0.5 ? -1 : 1;
+      this.foe.brain.superT = 8 + Math.random() * 6; // AI 大招節拍
+      this.foe.brain.superHold = 0;
     }
     this.syncFighterTransforms();
     // 鏡頭硬切到玩家後方(lerp 穿場鐵則)
@@ -715,9 +741,37 @@ export class WarriorGame {
   setupInput() {
     this.canvas.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      this.strike();
+      this._shootPress();
     });
+    // 放開在 window 上聽:手指/滑鼠拖出畫布外也收得到
+    window.addEventListener("pointerup", () => this._shootRelease());
+    window.addEventListener("pointercancel", () => this._shootRelease());
     this.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  }
+
+  // 按下出手:開戰/開始蓄力(短按放開=普攻,長按=大招)
+  _shootPress() {
+    if (this.overlay.visible) return;
+    if (this.phase === "gate") {
+      this.strike();
+      return;
+    }
+    if (this.phase !== "battle" || this.my.koT >= 0 || this.endT >= 0) return;
+    if (this.my.cd > 0 || this.my.stunT < this._stunDur()) return;
+    if (this.my.chargeT < 0) this.my.chargeT = 0;
+  }
+
+  // 放開出手:蓄滿=大招(刀光/劍光/波動),沒蓄滿=普通攻擊
+  _shootRelease() {
+    if (this.my.chargeT < 0) return;
+    const c = this.my.chargeT;
+    this.my.chargeT = -1;
+    if (this.phase !== "battle" || this.my.koT >= 0) return;
+    if (c >= CHARGE_MIN) {
+      this.superAttack(this.my, this.foe, clamp((c - CHARGE_MIN) / (CHARGE_FULL - CHARGE_MIN), 0, 1));
+    } else {
+      this.attack(this.my, this.foe);
+    }
   }
 
   // ---------- 局面控制 ----------
@@ -801,7 +855,13 @@ export class WarriorGame {
       let dmg = w.dmg;
       if (w.chargeBonus) dmg *= 1 + w.chargeBonus * clamp(Math.abs(fighter.speed) / preset.maxFwd, 0, 1);
       dmg *= isPlayer ? 1 + assist * 0.6 : preset.aiDmg;
-      this.applyHit(target, Math.round(dmg), { who: isPlayer ? "me" : "ai", weapon: w, stun: 0 });
+      // 判定在按下當下,傷害延到「揮到對方身上」的接觸瞬間才結算(動作看得見打中)
+      this._pendingStrikes.push({
+        target,
+        dmg: Math.round(dmg),
+        opts: { who: isPlayer ? "me" : "ai", weapon: w, stun: 0 },
+        t: CONTACT_AT[w.swing] || 0.2,
+      });
     } else {
       this.emitEvent("miss", { who: isPlayer ? "me" : "ai" });
       if (isPlayer) {
@@ -813,6 +873,56 @@ export class WarriorGame {
 
   _stunDur() {
     return 1.1; // 鋼球暈眩秒數(stunT < 此值=暈眩中)
+  }
+
+  // ---------- 蓄力大招:放出「刀光/劍光/武器波動」飛行斬擊波 ----------
+  superAttack(fighter, target, charge01) {
+    if (this.phase !== "battle" || this.endT >= 0 || fighter.koT >= 0) return;
+    const w = WEAPONS[fighter.weaponId];
+    const preset = DIFFICULTY_PRESETS[this.difficulty];
+    const isPlayer = fighter === this.my;
+    fighter.cd = w.cd * 2.2 * (isPlayer ? 1 : preset.aiCd); // 大招冷卻加倍
+    fighter.strikeT = 0; // 播大揮擊動畫
+    this.roundNo += 1;
+    let dmg = w.dmg * (1.4 + 1.1 * charge01); // 蓄越滿越痛(1.4x~2.5x)
+    dmg *= isPlayer ? 1 + preset.assist * 0.6 : preset.aiDmg;
+    this._fireWave(fighter, target, w, Math.round(dmg));
+    this.emitEvent("super", { who: isPlayer ? "me" : "ai", weapon: w.label });
+    this.message = isPlayer
+      ? `蓄力大招——${w.label}波動出鞘!`
+      : `對手放出${w.label}大招波動——快閃開!`;
+    this.pushHud();
+  }
+
+  _fireWave(fighter, target, w, dmg) {
+    // 斬擊波:發光新月弧,沿面向直飛(垂直=劈系劍光,水平=迴旋刀光)
+    const color = WAVE_COLORS[w.swing] || WAVE_COLORS[fighter.weaponId] || 0xfff3b0;
+    const wave = new THREE.Group();
+    const arcMesh = new THREE.Mesh(
+      new THREE.TorusGeometry(1.0, 0.15, 10, 26, Math.PI * 0.95),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 }),
+    );
+    arcMesh.rotation.z = Math.PI * 0.03;
+    const glow = new THREE.Mesh(
+      new THREE.TorusGeometry(1.0, 0.36, 10, 26, Math.PI * 0.95),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55 }),
+    );
+    glow.rotation.z = Math.PI * 0.03;
+    wave.add(arcMesh);
+    wave.add(glow);
+    if (w.swing === "spin") wave.rotation.z = Math.PI / 2; // 橫掃=水平刀光
+    const fwd = new THREE.Vector3(Math.sin(fighter.heading), 0, Math.cos(fighter.heading));
+    wave.position.copy(fighter.pos).setY(1.4).addScaledVector(fwd, 1.0);
+    wave.rotation.y = fighter.heading;
+    this.scene.add(wave);
+    this.projectiles.push({
+      mesh: wave, vel: fwd.multiplyScalar(13), t: 0,
+      dmg, stun: fighter.weaponId === "greenballs" ? 1.4 : 0,
+      target,
+      who: fighter === this.my ? "me" : "ai",
+      weapon: w,
+      isWave: true, hitR: 1.6, life: 1.3,
+    });
   }
 
   _queueShot(fighter, target, w, delay) {
@@ -880,6 +990,7 @@ export class WarriorGame {
     target.hp = Math.max(0, target.hp - dmg);
     target.hitT = 0;
     if (stun) target.stunT = 0;
+    target.chargeT = -1; // 被打中斷蓄力(反制大招的方法)
     // 撞退一小步(打擊感,幅度小,兒童安全)
     target.speed *= 0.4;
     this.hitFlash.position.copy(target.pos).setY(1.5);
@@ -1018,6 +1129,9 @@ export class WarriorGame {
       f.strikeT += sdt;
       f.cd = Math.max(0, f.cd - sdt);
       if (f.koT >= 0) f.koT += delta;
+      if (f.chargeT >= 0 && this.phase === "battle" && !paused) {
+        f.chargeT = Math.min(CHARGE_FULL, f.chargeT + sdt);
+      }
     }
 
     this.handleKeys();
@@ -1047,6 +1161,7 @@ export class WarriorGame {
     if (!stunned) {
       if (this.input.isDown("up")) target = preset.maxFwd + (this.input.isDown("sprint") ? preset.boost : 0);
       else if (this.input.isDown("down")) target = f.speed > 0.4 ? 0 : -MAX_BACK;
+      if (f.chargeT >= 0) target *= 0.5; // 蓄力中放慢(大招有重量感)
       const turn = (this.input.isDown("left") ? 1 : 0) - (this.input.isDown("right") ? 1 : 0);
       f.heading += turn * preset.turnRate * dt;
     }
@@ -1143,6 +1258,7 @@ export class WarriorGame {
       desiredHeading = Math.atan2(-f.pos.x, -f.pos.z);
     }
     if (stunned) desiredSpeed = 0;
+    if (f.chargeT >= 0) desiredSpeed *= 0.25; // AI 蓄力時明顯減速=玩家的閃避/打斷窗
 
     const angDiff = wrapAngle(desiredHeading - f.heading);
     const maxTurn = preset.turnRate * preset.aiSpd * dt;
@@ -1150,6 +1266,26 @@ export class WarriorGame {
     f.speed += (desiredSpeed * clamp(1 - Math.abs(angDiff) / Math.PI, 0.25, 1) - f.speed) * Math.min(1, dt * 3.0);
     this.movePos(f, dt);
     f.walkT += dt * (Math.abs(f.speed) / 2.4);
+
+    // 大招腦:定時蓄力放波動(蓄力有預告,玩家可閃可打斷)
+    brain.superT -= dt;
+    if (f.chargeT >= 0) {
+      if (f.chargeT >= brain.superHold) {
+        const c01 = clamp((f.chargeT - CHARGE_MIN) / (CHARGE_FULL - CHARGE_MIN), 0, 1);
+        f.chargeT = -1;
+        this.superAttack(f, this.my, c01);
+      }
+      return; // 蓄力中不做普攻
+    }
+    if (!this.mode.passive && !stunned && f.cd <= 0 && brain.superT <= 0 && dist >= 3.5 && dist <= 13) {
+      brain.superT = 9 + Math.random() * 7;
+      brain.superHold = CHARGE_MIN + 0.35 + Math.random() * 0.5;
+      f.chargeT = 0;
+      this.emitEvent("ai-charging", {});
+      this.message = "對手在蓄力大招——快閃開或打斷他!";
+      this.pushHud();
+      return;
+    }
 
     // 出手腦(練習場不出手)
     if (this.mode.passive || stunned || f.cd > 0) return;
@@ -1168,6 +1304,13 @@ export class WarriorGame {
   }
 
   updateProjectiles(dt) {
+    // 近戰接觸瞬間結算(揮擊掃到對方身上那一刻)
+    if (this._pendingStrikes && this._pendingStrikes.length) {
+      for (const s of this._pendingStrikes) s.t -= dt;
+      const landed = this._pendingStrikes.filter((s) => s.t <= 0);
+      this._pendingStrikes = this._pendingStrikes.filter((s) => s.t > 0);
+      for (const s of landed) this.applyHit(s.target, s.dmg, s.opts);
+    }
     // 延遲發射佇列(雙鋼球第二顆)
     if (this._shotQueue && this._shotQueue.length) {
       for (const shot of this._shotQueue) shot.t -= dt;
@@ -1177,19 +1320,28 @@ export class WarriorGame {
     }
     for (const p of this.projectiles) {
       p.t += dt;
-      p.vel.y -= (p.isBall ? 6.0 : 1.6) * dt;
-      p.mesh.position.addScaledVector(p.vel, dt);
-      if (!p.isBall) p.mesh.lookAt(p.mesh.position.clone().add(p.vel));
-      // 命中判定(只打對方)
+      if (p.isWave) {
+        // 斬擊波:直飛不落地,邊飛邊放大+旋轉刀光+脈動發光
+        p.mesh.position.addScaledVector(p.vel, dt);
+        const s = 1.15 + p.t * 0.8 + Math.sin(p.t * 18) * 0.06;
+        p.mesh.scale.setScalar(s);
+        for (const c of p.mesh.children) c.rotation.z += dt * 5.5; // 新月刀光旋轉,遠看也醒目
+        p.mesh.children[1].material.opacity = 0.55 * (1 - (p.t / p.life) * 0.7);
+      } else {
+        p.vel.y -= (p.isBall ? 6.0 : 1.6) * dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        if (!p.isBall) p.mesh.lookAt(p.mesh.position.clone().add(p.vel));
+      }
+      // 命中判定(只打對方;波動判定半徑較大)
       if (!p.done && p.target.koT < 0) {
-        const chest = p.target.pos.clone().setY(1.35);
-        if (p.mesh.position.distanceTo(chest) < 1.0) {
+        const chest = p.target.pos.clone().setY(p.isWave ? 1.4 : 1.35);
+        if (p.mesh.position.distanceTo(chest) < (p.hitR || 1.0)) {
           p.done = true;
           p.remove = true;
           this.applyHit(p.target, p.dmg, { who: p.who, weapon: p.weapon, stun: p.stun });
         }
       }
-      if (p.mesh.position.y <= 0.05 || p.t > 3.5) p.remove = true;
+      if (p.isWave ? p.t > p.life : (p.mesh.position.y <= 0.05 || p.t > 3.5)) p.remove = true;
     }
     for (const p of this.projectiles.filter((x) => x.remove)) this.scene.remove(p.mesh);
     this.projectiles = this.projectiles.filter((x) => !x.remove);
@@ -1198,8 +1350,9 @@ export class WarriorGame {
   handleKeys() {
     if (this.input.consumePress("camera")) this.cycleCameraView();
     if (this.input.consumePress("pause")) this.togglePause();
+    if (this.input.consumeRelease("shoot")) this._shootRelease(); // 放開一定要收到(即使暫停)
     if (this.overlay.visible) return;
-    if (this.input.consumePress("shoot")) this.strike();
+    if (this.input.consumePress("shoot")) this._shootPress();
     if (this.input.consumePress("switch")) this.cyclePlayerWeapon();
     for (let i = 0; i < WEAPON_ORDER.length; i += 1) {
       if (this.input.consumePress(`weapon${i + 1}`)) this.setPlayerWeapon(WEAPON_ORDER[i]);
@@ -1233,25 +1386,82 @@ export class WarriorGame {
         }
       }
 
-      // 出手動畫:0.16s 前刺/揮出 → 0.29s 收回
-      let thrust = 0;
-      if (f.strikeT < 0.16) thrust = f.strikeT / 0.16;
-      else if (f.strikeT < 0.45) thrust = 1 - (f.strikeT - 0.16) / 0.29;
-
-      if (w.ranged) {
-        // 遠程:手臂抬高瞄準,出手時輕振
-        person.rightArm.pivot.rotation.x = -1.35 - thrust * 0.2;
-        person.rightArm.joint.rotation.x = -0.25;
-      } else {
-        person.rightArm.pivot.rotation.x = (engaged ? -1.2 : -0.9) - thrust * 0.6;
-        person.rightArm.joint.rotation.x = (engaged ? -0.3 : -0.5) - thrust * 0.3;
-      }
-      // 大刀/劍類:出手時上身帶一點側轉(揮砍感)
-      const swing = !w.ranged && !w.chargeBonus ? thrust * 0.55 : 0;
-      person.rig.rotation.y = -swing;
-      // 武器前送(刺擊類整枝前刺)
+      // —— 大揮擊動畫(動作要大、看得見打到身上) ——
+      // chop=180°舉過頭直劈;spin=360°上身迴旋橫掃;lunge=大幅回拉整枝前刺
+      const st = f.strikeT;
       const model = f.gear.weapons[f.weaponId];
-      if (model) model.position.z = 0.1 + (w.chargeBonus ? thrust * 0.8 : thrust * 0.35);
+      let armX = engaged ? -1.2 : -0.9;
+      let armJ = engaged ? -0.3 : -0.5;
+      let rigY = 0; // 上身水平旋轉(迴旋斬用)
+      let strikeLean = 0; // 上身前壓(力道感)
+      let weaponZ = 0.1;
+      if (w.ranged) {
+        armX = -1.35;
+        armJ = -0.25;
+        if (st < 0.45) armX -= 0.2 * (st < 0.16 ? st / 0.16 : 1 - (st - 0.16) / 0.29);
+      } else if (st < 0.6) {
+        if (w.swing === "chop") {
+          if (st < 0.12) { // 舉過頭後方蓄力
+            const k = st / 0.12;
+            armX = -1.2 - k * 1.75;
+          } else if (st < 0.3) { // 180° 全弧直劈到身前下方
+            const k = (st - 0.12) / 0.18;
+            armX = -2.95 + k * 2.6;
+            armJ = -0.1 - k * 0.2;
+            strikeLean = k * 0.35;
+          } else { // 收回備戰位
+            const k = (st - 0.3) / 0.3;
+            armX = -0.35 - k * 0.85;
+            armJ = -0.3 + k * 0.15;
+            strikeLean = 0.35 * (1 - k);
+          }
+        } else if (w.swing === "spin") {
+          armX = -1.5; // 手臂平舉,大刀橫置
+          armJ = 0;
+          if (st < 0.12) { // 起手反擰
+            rigY = -(st / 0.12) * 0.5;
+          } else if (st < 0.45) { // 上身整圈 360° 迴旋橫掃
+            rigY = -0.5 - ((st - 0.12) / 0.33) * Math.PI * 2;
+            strikeLean = 0.15;
+          } else { // 收勢(−0.5−2π 與 −0.5 同向,直接從 −0.5 轉回 0)
+            const k = (st - 0.45) / 0.15;
+            rigY = -0.5 * (1 - k);
+          }
+        } else { // lunge:回拉蓄力 → 整枝大幅前刺 → 收回
+          if (st < 0.1) {
+            const k = st / 0.1;
+            weaponZ = 0.1 - k * 0.4;
+            armX = -1.2 + k * 0.2;
+          } else if (st < 0.26) {
+            const k = (st - 0.1) / 0.16;
+            weaponZ = -0.3 + k * 1.9; // 整枝刺出去
+            armX = -1.45;
+            armJ = -0.05;
+            strikeLean = k * 0.4;
+          } else {
+            const k = (st - 0.26) / 0.34;
+            weaponZ = 1.6 - k * 1.5;
+            armX = -1.3;
+            strikeLean = 0.4 * (1 - k);
+          }
+        }
+      }
+      // 蓄力演出:武器高舉發抖+腳下金圈亮起放大(蓄越滿越亮)
+      if (f.chargeT >= 0) {
+        const c01 = clamp(f.chargeT / CHARGE_FULL, 0, 1);
+        armX = -2.3 + Math.sin(this.time * 26) * 0.07 * (0.5 + c01);
+        armJ = -0.1;
+        rigY = 0;
+        weaponZ = 0.1;
+        f.chargeRing.material.opacity = 0.25 + c01 * 0.6;
+        f.chargeRing.scale.setScalar(0.8 + c01 * 1.0);
+      } else {
+        f.chargeRing.material.opacity = 0;
+      }
+      person.rightArm.pivot.rotation.x = armX;
+      person.rightArm.joint.rotation.x = armJ;
+      person.rig.rotation.y = rigY;
+      if (model) model.position.z = weaponZ;
 
       // 左臂持盾護胸(格鬥架式雙手前彎)
       person.leftArm.pivot.rotation.x = engaged ? -1.0 : -0.8;
@@ -1273,7 +1483,9 @@ export class WarriorGame {
         person.rig.rotation.x = 0.1;
       } else {
         person.rig.rotation.z = 0;
-        person.rig.rotation.x = f.hitT < 0.8 ? -0.5 * (1 - f.hitT / 0.8) : (engaged ? 0.08 : 0);
+        person.rig.rotation.x = f.hitT < 0.8
+          ? -0.8 * (1 - f.hitT / 0.8)
+          : Math.max(strikeLean, engaged ? 0.08 : 0);
       }
     }
   }
@@ -1338,11 +1550,15 @@ export class WarriorGame {
       message: this.message,
       speed01: clamp(Math.abs(this.my.speed) / (preset.maxFwd + preset.boost), 0, 1),
       speedText: `${(this.my.speed * 3.6).toFixed(0)} km/h`,
+      weaponId: this.my.weaponId,
       weaponLabel: w.label,
       weaponShort: w.short,
       weaponHint: w.hint,
       weaponReady01: ready01,
       weaponReady: this.my.cd <= 0,
+      charging: this.my.chargeT >= 0,
+      charge01: this.my.chargeT >= 0 ? clamp(this.my.chargeT / CHARGE_FULL, 0, 1) : 0,
+      chargeReady: this.my.chargeT >= CHARGE_MIN,
       inReach,
       gapText: this.phase === "battle" ? `${dist.toFixed(1)} m` : "—",
       lastHit: this.lastHit,
