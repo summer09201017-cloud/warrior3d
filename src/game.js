@@ -83,6 +83,14 @@ const WAVE_COLORS = { chop: 0xfff3b0, spin: 0xff9a3d, lunge: 0x6fd8ff, bow: 0xff
 // 自動把身體轉向對手;出手瞬間在攻距內更直接轉身面對再判定。
 const AUTO_FACE_RANGE = 8;
 
+// 突進技(07-16 使用者點名):衝刺 ≥SPRINT_ARM 秒後按出手——
+// 對手在遠距帶=「跳殺」(拋物線飛身躍撲,落地斬 1.6x);近距帶=「飛殺」(比衝刺更快的
+// 1.8x 爆發突進,接觸斬 1.5x)。共用 TECH_CD 冷卻;玩家限定。
+const SPRINT_ARM = 0.35;
+const TECH_CD = 3.5;
+const LEAP_RANGE = [5, 12]; // 跳殺距離帶
+const DASH_RANGE = [2, 5]; // 飛殺距離帶
+
 // ---------- 比武場常數 ----------
 const ARENA_HALF = 15; // 徒步場地(±m)
 const BODY_REACH = 0.55; // 臂展基礎出手距離
@@ -652,6 +660,7 @@ export class WarriorGame {
       person, gear, chargeRing,
       pos: new THREE.Vector3(), heading: 0, speed: 0,
       hp: 100, weaponId: "sword", cd: 0, chargeT: -1,
+      sprintT: 0, techCd: 0, leap: null, dash: null, airY: 0,
       strikeT: 9, hitT: 9, stunT: 9, koT: -1, walkT: 0,
     };
   }
@@ -669,6 +678,11 @@ export class WarriorGame {
       f.stunT = 9;
       f.koT = -1;
       f.chargeT = -1;
+      f.sprintT = 0;
+      f.techCd = 0;
+      f.leap = null;
+      f.dash = null;
+      f.airY = 0;
       f.person.group.rotation.z = 0;
       f.person.group.position.y = 0;
       f.person.rig.rotation.set(0, 0, 0);
@@ -753,7 +767,7 @@ export class WarriorGame {
     this.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
   }
 
-  // 按下出手:開戰/開始蓄力(短按放開=普攻,長按=大招)
+  // 按下出手:開戰/突進技(衝刺中)/開始蓄力(短按放開=普攻,長按=大招)
   _shootPress() {
     if (this.overlay.visible) return;
     if (this.phase === "gate") {
@@ -761,8 +775,110 @@ export class WarriorGame {
       return;
     }
     if (this.phase !== "battle" || this.my.koT >= 0 || this.endT >= 0) return;
+    if (this.my.leap || this.my.dash) return;
     if (this.my.cd > 0 || this.my.stunT < this._stunDur()) return;
+    // 衝刺一小段後按出手=突進技:遠=跳殺、近=飛殺
+    if (this.my.sprintT >= SPRINT_ARM && this.my.techCd <= 0 && this.foe.koT < 0) {
+      const dist = this.my.pos.distanceTo(this.foe.pos);
+      if (dist >= DASH_RANGE[0] && dist < DASH_RANGE[1]) {
+        this._startDash(this.my);
+        return;
+      }
+      if (dist >= LEAP_RANGE[0] && dist <= LEAP_RANGE[1]) {
+        this._startLeap(this.my);
+        return;
+      }
+    }
     if (this.my.chargeT < 0) this.my.chargeT = 0;
+  }
+
+  // ---------- 突進技:跳殺(躍撲落地斬)/飛殺(爆發突進斬) ----------
+  _startLeap(fighter) {
+    const target = this.foe;
+    const dist = fighter.pos.distanceTo(target.pos);
+    const dur = 0.45 + dist * 0.02;
+    // 預判對手移動,落點停在對手身前一步
+    const to = target.pos.clone().addScaledVector(
+      new THREE.Vector3(Math.sin(target.heading), 0, Math.cos(target.heading)),
+      target.speed * dur * 0.7,
+    );
+    to.x = clamp(to.x, -ARENA_HALF, ARENA_HALF);
+    to.z = clamp(to.z, -ARENA_HALF, ARENA_HALF);
+    const dir = to.clone().sub(fighter.pos).normalize();
+    to.addScaledVector(dir, -1.1);
+    fighter.leap = { t: 0, dur, from: fighter.pos.clone(), to, h: 1.9 };
+    fighter.heading = Math.atan2(to.x - fighter.pos.x, to.z - fighter.pos.z);
+    fighter.chargeT = -1;
+    fighter.sprintT = 0;
+    fighter.techCd = TECH_CD;
+    this.roundNo += 1;
+    this.emitEvent("leap", { who: "me" });
+    this.message = "跳殺——飛身躍向對手!";
+    this.pushHud();
+  }
+
+  _landLeap(fighter) {
+    fighter.leap = null;
+    fighter.airY = 0;
+    fighter.speed *= 0.5;
+    fighter.strikeT = 0; // 落地斬演出
+    const w = WEAPONS[fighter.weaponId];
+    const preset = DIFFICULTY_PRESETS[this.difficulty];
+    const target = this.foe;
+    const dist = fighter.pos.distanceTo(target.pos);
+    fighter.heading = Math.atan2(target.pos.x - fighter.pos.x, target.pos.z - fighter.pos.z);
+    fighter.cd = w.cd * 1.4;
+    const reach = Math.max(w.reach, 1.6) + BODY_REACH + 0.8;
+    if (dist <= reach && target.koT < 0) {
+      const dmg = w.dmg * 1.6 * (1 + preset.assist * 0.6);
+      this._pendingStrikes.push({
+        target,
+        dmg: Math.round(dmg),
+        opts: { who: "me", weapon: { label: `${w.label}跳殺`, short: "跳殺" }, stun: 0 },
+        t: 0.12,
+      });
+    } else {
+      this.emitEvent("miss", { who: "me" });
+      this.message = "跳殺落空——再抓準一點起跳!";
+    }
+    this.pushHud();
+  }
+
+  _startDash(fighter) {
+    const preset = DIFFICULTY_PRESETS[this.difficulty];
+    const target = this.foe;
+    fighter.heading = Math.atan2(target.pos.x - fighter.pos.x, target.pos.z - fighter.pos.z);
+    fighter.dash = { t: 0, dur: 0.5, speed: (preset.maxFwd + preset.boost) * 1.8 };
+    fighter.chargeT = -1;
+    fighter.sprintT = 0;
+    fighter.techCd = TECH_CD;
+    this.roundNo += 1;
+    this.emitEvent("dash", { who: "me" });
+    this.message = "飛殺——閃電突進!";
+    this.pushHud();
+  }
+
+  _landDash(fighter, dist) {
+    fighter.dash = null;
+    fighter.strikeT = 0;
+    const w = WEAPONS[fighter.weaponId];
+    const preset = DIFFICULTY_PRESETS[this.difficulty];
+    const target = this.foe;
+    fighter.cd = w.cd * 1.3;
+    if (dist <= 1.8 && target.koT < 0) {
+      fighter.speed *= 0.35;
+      const dmg = w.dmg * 1.5 * (1 + preset.assist * 0.6);
+      this._pendingStrikes.push({
+        target,
+        dmg: Math.round(dmg),
+        opts: { who: "me", weapon: { label: `${w.label}飛殺`, short: "飛殺" }, stun: 0 },
+        t: 0.1,
+      });
+    } else {
+      this.emitEvent("miss", { who: "me" });
+      this.message = "飛殺撲空——抓準距離再突進!";
+    }
+    this.pushHud();
   }
 
   // 放開出手:蓄滿=大招(刀光/劍光/波動),沒蓄滿=普通攻擊
@@ -1144,6 +1260,7 @@ export class WarriorGame {
       f.strikeT += sdt;
       f.cd = Math.max(0, f.cd - sdt);
       if (f.koT >= 0) f.koT += delta;
+      f.techCd = Math.max(0, f.techCd - sdt);
       if (f.chargeT >= 0 && this.phase === "battle" && !paused) {
         f.chargeT = Math.min(CHARGE_FULL, f.chargeT + sdt);
       }
@@ -1171,7 +1288,30 @@ export class WarriorGame {
       return;
     }
     const preset = DIFFICULTY_PRESETS[this.difficulty];
+    // 跳殺進行中:拋物線躍撲(暫時鎖控制)
+    if (f.leap) {
+      f.leap.t += dt;
+      const k = clamp(f.leap.t / f.leap.dur, 0, 1);
+      f.pos.lerpVectors(f.leap.from, f.leap.to, k);
+      f.airY = f.leap.h * 4 * k * (1 - k);
+      f.walkT += dt * 1.4;
+      if (k >= 1) this._landLeap(f);
+      return;
+    }
+    // 飛殺進行中:比衝刺更快的爆發直衝,碰到就斬
+    if (f.dash) {
+      f.dash.t += dt;
+      f.speed = f.dash.speed;
+      this.movePos(f, dt);
+      f.walkT += dt * (f.speed / 2.4);
+      const d = f.pos.distanceTo(this.foe.pos);
+      if (d <= 1.8 || f.dash.t >= f.dash.dur) this._landDash(f, d);
+      return;
+    }
     const stunned = f.stunT < this._stunDur();
+    // 衝刺累計(突進技的啟動條件)
+    const sprinting = this.input.isDown("up") && this.input.isDown("sprint") && !stunned;
+    f.sprintT = sprinting && Math.abs(f.speed) > preset.maxFwd * 0.8 ? f.sprintT + dt : 0;
     let target = 0;
     if (!stunned) {
       if (this.input.isDown("up")) target = preset.maxFwd + (this.input.isDown("sprint") ? preset.boost : 0);
@@ -1211,8 +1351,9 @@ export class WarriorGame {
     f.pos.z = nz;
   }
 
-  // 兩人不重疊(輕推開,防穿模)
+  // 兩人不重疊(輕推開,防穿模;跳殺空中不推)
   resolveBodyPush() {
+    if (this.my.leap) return;
     const dx = this.foe.pos.x - this.my.pos.x;
     const dz = this.foe.pos.z - this.my.pos.z;
     const d = Math.hypot(dx, dz);
@@ -1516,6 +1657,7 @@ export class WarriorGame {
           ? -0.8 * (1 - f.hitT / 0.8)
           : Math.max(strikeLean, engaged ? 0.08 : 0);
       }
+      person.group.position.y += f.airY || 0; // 跳殺滯空高度
     }
   }
 
