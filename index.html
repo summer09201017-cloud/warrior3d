@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0d1f2b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>3D 武士勇者比武 Warrior Duel 3D</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <canvas id="gameCanvas" aria-label="3D 武士勇者比武遊戲畫面"></canvas>
+
+      <div class="top-bar">
+        <div class="score-card team-home">
+          <span class="score-label">紅方勇者(我)血量</span>
+          <strong id="myScoreLabel">100</strong>
+        </div>
+        <div class="center-board">
+          <div class="clock-stack period-stack">
+            <span class="mini-label">模式</span>
+            <strong id="modeCode">對決</strong>
+          </div>
+          <div class="clock-stack">
+            <span class="mini-label">回合</span>
+            <strong id="passLabel">0</strong>
+            <span class="stack-subtext" id="gapLabel">—</span>
+          </div>
+          <div class="clock-stack accent">
+            <span class="mini-label">上一擊</span>
+            <strong id="lastPassLabel">—</strong>
+            <span class="stack-subtext" id="phaseLabel">主選單</span>
+          </div>
+        </div>
+        <div class="score-card team-away">
+          <span class="score-label">藍方武士(AI)血量</span>
+          <strong id="aiScoreLabel">100</strong>
+        </div>
+      </div>
+
+      <button id="pauseButton" class="pause-fab">暫停</button>
+
+      <div class="message-ribbon" id="statusMessage">選擇模式後開始比武。</div>
+      <div class="commentary-bar" id="commentaryBar" hidden></div>
+
+      <aside class="side-panel">
+        <div class="panel-block hero-panel">
+          <p class="eyebrow">Warrior Duel 3D · 德義武鬥館</p>
+          <h1>3D 武士勇者比武</h1>
+          <p class="panel-copy">
+            徒步自由走位的勇者對決——前進、後退、轉身走位,八般武器隨時更換,打光對手血量條獲勝!鈍頭武器無流血,敗方溫柔跪地,以武會友!
+          </p>
+        </div>
+
+        <div class="panel-block compact-grid">
+          <div>
+            <span class="mini-label">遊戲模式</span>
+            <strong id="modeLabel">對決</strong>
+          </div>
+          <div>
+            <span class="mini-label">難度</span>
+            <strong id="difficultyLabel">標準</strong>
+          </div>
+          <div>
+            <span class="mini-label">與對手距離</span>
+            <strong id="gapSideLabel">—</strong>
+          </div>
+          <div>
+            <span class="mini-label">目前武器</span>
+            <strong id="weaponSideLabel">騎士劍</strong>
+          </div>
+          <div>
+            <span class="mini-label">移動速度</span>
+            <strong id="speedLabel">0 km/h</strong>
+          </div>
+          <div>
+            <span class="mini-label">音效狀態</span>
+            <strong id="audioStatus">開啟</strong>
+          </div>
+          <div>
+            <span class="mini-label">戰績</span>
+            <strong id="saveStatus">尚無</strong>
+          </div>
+        </div>
+
+        <div class="panel-block meter-block">
+          <div class="meter-copy">
+            <span class="mini-label">移動速度</span>
+            <strong id="speedMeterText">按住前進</strong>
+          </div>
+          <div class="meter-track">
+            <div id="speedMeterFill" class="meter-fill shot"></div>
+          </div>
+
+          <div class="meter-copy stamina-copy">
+            <span class="mini-label">武器冷卻(滿=可出手)</span>
+            <strong id="windowValue">—</strong>
+          </div>
+          <div class="meter-track stamina">
+            <div id="windowFill" class="meter-fill stamina-fill"></div>
+          </div>
+        </div>
+
+        <div class="panel-block action-buttons">
+          <button id="menuButton" class="primary">首頁選單</button>
+          <button id="loadButton">看戰績</button>
+          <button id="audioButton">音效開啟</button>
+          <button id="cameraButton">視角切換</button>
+        </div>
+
+        <div class="panel-block">
+          <button id="installButton" class="install-button" hidden>安裝到手機</button>
+          <p class="install-hint" id="installHint">
+            Android 可直接安裝；iPhone 可用分享選單加入主畫面。
+          </p>
+        </div>
+
+        <div class="panel-block instructions">
+          <p class="mini-label">操作</p>
+          <p>出手: 點畫面或空白鍵</p>
+          <p>前進 / 後退: W / S(↑ / ↓)</p>
+          <p>左轉 / 右轉: A / D(← / →)</p>
+          <p>換武器: 1-8 直選,Q / Tab 循環</p>
+          <p>衝刺: Shift｜視角: V｜暫停: Esc / P</p>
+        </div>
+      </aside>
+
+      <div class="touch-layer" id="touchControls">
+        <div class="dpad">
+          <button data-action="up" aria-label="前進">▲</button>
+          <button data-action="left" aria-label="左轉">◀</button>
+          <button data-action="right" aria-label="右轉">▶</button>
+          <button data-action="down" aria-label="後退">▼</button>
+        </div>
+        <div class="action-pad">
+          <button data-action="shoot" class="shoot">出手</button>
+          <button data-action="switch">換武器</button>
+          <button data-action="camera">視角</button>
+        </div>
+      </div>
+
+      <div class="overlay-shell" id="matchOverlay" aria-live="polite">
+        <div class="overlay-card">
+          <p class="eyebrow" id="overlayEyebrow">比賽暫停</p>
+          <h2 id="overlayTitle">暫停中</h2>
+          <p id="overlayText" class="overlay-copy">準備好再上場。</p>
+          <div class="button-row overlay-actions">
+            <button id="resumeButton" class="primary">繼續比賽</button>
+            <button id="overlayMenuButton">回到首頁</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-screen visible" id="homeScreen" aria-live="polite">
+        <div class="home-backdrop"></div>
+        <div class="home-content">
+          <div class="home-hero">
+            <p class="eyebrow">Warrior Duel 3D · 德義武鬥館</p>
+            <h2>徒步勇者,八般武器!</h2>
+            <p>
+              徒步自由走位——前進、後退、轉身,場中沒有任何阻擋!長槍、長矛、大刀、劍、彎刀、西洋劍、弓箭、雙綠鋼球隨時切換,看準冷卻與距離出手,打光對手血量條獲勝。鈍頭武器無流血、敗方溫柔跪地——以武會友!
+            </p>
+          </div>
+
+          <div class="home-grid">
+            <section class="home-card">
+              <p class="eyebrow">遊戲模式</p>
+              <div class="mode-card-grid" id="modeCardGrid">
+                <button class="mode-card" data-mode="duel">
+                  <strong>對決</strong>
+                  <span>各 100 血,打光對手血量獲勝</span>
+                </button>
+                <button class="mode-card" data-mode="epic">
+                  <strong>大戰三百回合</strong>
+                  <span>各 300 血馬拉松,戰滿三百回合以血量判定</span>
+                </button>
+                <button class="mode-card" data-mode="practice">
+                  <strong>練習場</strong>
+                  <span>對手只走位不出手,自由練武器手感</span>
+                </button>
+              </div>
+              <p id="modeDescription" class="mode-description"></p>
+            </section>
+
+            <section class="home-card">
+              <p class="eyebrow">比賽設定</p>
+              <label class="field-label" for="menuDifficultySelect">難度</label>
+              <select id="menuDifficultySelect">
+                <option value="kids">幼兒（超簡單）</option>
+                <option value="child">兒童（簡單）</option>
+                <option value="easy">入門</option>
+                <option value="normal">標準</option>
+                <option value="hard">職業</option>
+              </select>
+
+              <label class="field-label" for="weaponSelect">起手武器(戰鬥中可用 1-8 / Q 隨時更換)</label>
+              <select id="weaponSelect">
+                <option value="lance">長槍——衝刺加成最大,慢而重</option>
+                <option value="spear">長矛——長距直刺,攻守兼備</option>
+                <option value="greatblade">青龍大刀——橫掃大弧,重擊</option>
+                <option value="sword">騎士劍——均衡好上手</option>
+                <option value="saber">彎刀——出手飛快的連擊</option>
+                <option value="rapier">西洋劍——最快的點刺</option>
+                <option value="bow">弓箭——遠距狙擊(鈍頭箭)</option>
+                <option value="greenballs">雙綠鋼球——兩顆連投,命中暈眩</option>
+              </select>
+
+              <label class="field-label" for="outfitSelect">戰袍顏色</label>
+              <select id="outfitSelect">
+                <option value="crimson">緋紅</option>
+                <option value="orange">橙黃</option>
+                <option value="green">松綠</option>
+                <option value="purple">紫袍</option>
+                <option value="gold">金黃</option>
+                <option value="teal">青碧</option>
+                <option value="pink">桃粉</option>
+              </select>
+
+              <label class="field-label" for="audioSelect">音效與播報</label>
+              <select id="audioSelect">
+                <option value="on">開啟</option>
+                <option value="off">靜音</option>
+              </select>
+
+              <div class="home-mode-meta">
+                <div>
+                  <span class="mini-label">模式摘要</span>
+                  <strong id="modeMetaTitle">對決</strong>
+                </div>
+                <div>
+                  <span class="mini-label">目標</span>
+                  <strong id="modeMetaGoal">總分高者勝</strong>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="button-row home-actions">
+            <button id="startMatchButton" class="primary">開始比武</button>
+            <button id="continueSavedButton">看戰績</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <div class="power-panel-big" id="bigPower" hidden><span id="bigPowerLabel">出手時機</span><div class="big-track"><div class="big-fill" id="bigPowerFill"></div></div></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
